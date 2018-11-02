@@ -1,20 +1,87 @@
-apiVersion: extensions/v1beta1  
-kind: Ingress  
-metadata:  
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
   name: funayose-test-ingress
-  namespace: sandbox
-spec:  
+  namespace: account-sandbox
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: "account-sandbox-ip"
+    kubernetes.io/ingress.allow-http: "false"
+spec:
   tls:
-  - secretName: funayose-test-ssl
-  backend:
-    serviceName: idp-service
-    servicePort: 7000
+  - hosts:
+    - idp.techblog-sokuhou.com
+    - auth.techblog-sokuhou.com
+    secretName: funayose-test-ssl
+  rules:
+  - host: idp.techblog-sokuhou.com
+    http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: idp-service
+          servicePort: 7000
+  - host: auth.techblog-sokuhou.com
+    http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: auth-service
+          servicePort: 7001
+  - host: userinfo.techblog-sokuhou.com
+    http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: userinfo-service
+          servicePort: 7002
+  - host: admin.techblog-sokuhou.com
+    http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: admin-service
+          servicePort: 7003
+  - host: test1.techblog-sokuhou.com
+    http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: test1-service
+          servicePort: 7004
+  - host: test2.techblog-sokuhou.com
+    http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: test2-service
+          servicePort: 7005
+  - host: test3.techblog-sokuhou.com
+    http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: test3-service
+          servicePort: 7006
+  - host: test4.techblog-sokuhou.com
+    http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: test4-service
+          servicePort: 7007
+  - host: test5.techblog-sokuhou.com
+    http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: test5-service
+          servicePort: 7008
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: idp-service
-  namespace: sandbox
+  namespace: account-sandbox
   labels:
     app: idp
 spec:
@@ -26,23 +93,362 @@ spec:
   selector:
     app: idp
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: account-sandbox
+  labels:
+    app: auth
+spec:
+  type: NodePort
+  ports:
+  - port: 7001
+    targetPort: 7001
+    protocol: TCP
+  selector:
+    app: auth
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: userinfo-service
+  namespace: account-sandbox
+  labels:
+    app: userinfo
+spec:
+  type: NodePort
+  ports:
+  - port: 7002
+    targetPort: 7002
+    protocol: TCP
+  selector:
+    app: userinfo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-service
+  namespace: account-sandbox
+  labels:
+    app: admin
+spec:
+  type: NodePort
+  ports:
+  - port: 7003
+    targetPort: 7003
+    protocol: TCP
+  selector:
+    app: admin
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test1-service
+  namespace: account-sandbox
+  labels:
+    app: test1
+spec:
+  type: NodePort
+  ports:
+  - port: 7004
+    targetPort: 7004
+    protocol: TCP
+  selector:
+    app: test1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test2-service
+  namespace: account-sandbox
+  labels:
+    app: test2
+spec:
+  type: NodePort
+  ports:
+  - port: 7005
+    targetPort: 7005
+    protocol: TCP
+  selector:
+    app: test2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test3-service
+  namespace: account-sandbox
+  labels:
+    app: test3
+spec:
+  type: NodePort
+  ports:
+  - port: 7006
+    targetPort: 7006
+    protocol: TCP
+  selector:
+    app: test3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test4-service
+  namespace: account-sandbox
+  labels:
+    app: test4
+spec:
+  type: NodePort
+  ports:
+  - port: 7007
+    targetPort: 7007
+    protocol: TCP
+  selector:
+    app: test4
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test5-service
+  namespace: account-sandbox
+  labels:
+    app: test5
+spec:
+  type: NodePort
+  ports:
+  - port: 7008
+    targetPort: 7008
+    protocol: TCP
+  selector:
+    app: test5
+---
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: idp
-  namespace: sandbox
+  namespace: account-sandbox
 spec:
   replicas: 2
   revisionHistoryLimit: 5
   template:
     metadata:
-      namespace: sandbox
+      namespace: account-sandbox
       labels:
         app: idp
         version: latest
     spec:
       containers:
       - name: idp
-        image: asia.gcr.io/linkbal-sandbox/idp:latest
+        image: asia.gcr.io/linkbal-sandbox/funayose-image:latest
+        command: ["idp"]
         ports:
         - containerPort: 7000
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 7000
+        resources:
+          requests:
+            cpu: 50m
+        env:
+        - name: AUTH_INTERNAL_URL
+          value: "account-sandbox.svc.cluster.local:7001"
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: auth
+  namespace: account-sandbox
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  template:
+    metadata:
+      namespace: account-sandbox
+      labels:
+        app: auth
+        version: latest
+    spec:
+      containers:
+      - name: auth
+        image: asia.gcr.io/linkbal-sandbox/funayose-image:latest
+        command: ["auth"]
+        ports:
+        - containerPort: 7001
+        resources:
+          requests:
+            cpu: 50m
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: userinfo
+  namespace: account-sandbox
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  template:
+    metadata:
+      namespace: account-sandbox
+      labels:
+        app: userinfo
+        version: latest
+    spec:
+      containers:
+      - name: userinfo
+        image: asia.gcr.io/linkbal-sandbox/funayose-image:latest
+        command: ["userinfo"]
+        ports:
+        - containerPort: 7002
+        resources:
+          requests:
+            cpu: 50m
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: admin
+  namespace: account-sandbox
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  template:
+    metadata:
+      namespace: account-sandbox
+      labels:
+        app: admin
+        version: latest
+    spec:
+      containers:
+      - name: admin
+        image: asia.gcr.io/linkbal-sandbox/funayose-image:latest
+        command: ["admin"]
+        ports:
+        - containerPort: 7003
+        resources:
+          requests:
+            cpu: 50m
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: test1
+  namespace: account-sandbox
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  template:
+    metadata:
+      namespace: account-sandbox
+      labels:
+        app: test1
+        version: latest
+    spec:
+      containers:
+      - name: test1
+        image: asia.gcr.io/linkbal-sandbox/funayose-image:latest
+        command: ["test1"]
+        ports:
+        - containerPort: 7004
+        resources:
+          requests:
+            cpu: 50m
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: test2
+  namespace: account-sandbox
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  template:
+    metadata:
+      namespace: account-sandbox
+      labels:
+        app: test2
+        version: latest
+    spec:
+      containers:
+      - name: test2
+        image: asia.gcr.io/linkbal-sandbox/funayose-image:latest
+        command: ["test2"]
+        ports:
+        - containerPort: 7005
+        resources:
+          requests:
+            cpu: 50m
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: test3
+  namespace: account-sandbox
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  template:
+    metadata:
+      namespace: account-sandbox
+      labels:
+        app: test3
+        version: latest
+    spec:
+      containers:
+      - name: test3
+        image: asia.gcr.io/linkbal-sandbox/funayose-image:latest
+        command: ["test3"]
+        ports:
+        - containerPort: 7006
+        resources:
+          requests:
+            cpu: 50m
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: test4
+  namespace: account-sandbox
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  template:
+    metadata:
+      namespace: account-sandbox
+      labels:
+        app: test4
+        version: latest
+    spec:
+      containers:
+      - name: test4
+        image: asia.gcr.io/linkbal-sandbox/funayose-image:latest
+        command: ["test4"]
+        ports:
+        - containerPort: 7007
+        resources:
+          requests:
+            cpu: 50m
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: test5
+  namespace: account-sandbox
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  template:
+    metadata:
+      namespace: account-sandbox
+      labels:
+        app: test5
+        version: latest
+    spec:
+      containers:
+      - name: test5
+        image: asia.gcr.io/linkbal-sandbox/funayose-image:latest
+        command: ["test5"]
+        ports:
+        - containerPort: 7008
+        resources:
+          requests:
+            cpu: 50m
